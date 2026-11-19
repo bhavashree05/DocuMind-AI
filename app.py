@@ -3,6 +3,7 @@ import fitz
 import faiss
 import numpy as np
 import json
+from navigatelab import generate_answer as nl_generate_answer
 from google import genai
 from sentence_transformers import SentenceTransformer
 
@@ -56,37 +57,28 @@ def generate_answer(state: RAGState):
             f"{chunk['text']}\n"
         )
 
-    client = genai.Client(
-        api_key=st.secrets["GEMINI_API_KEY"]
-    )
-
     prompt = f"""
-    You are DocuMind AI, an intelligent document assistant.
+You are DocuMind AI, an intelligent document assistant.
 
-    Answer the user's question using ONLY the context.
+Answer the user's question using ONLY the context.
 
-    Instructions:
-    1. Use simple English.
-    2. Give a clear answer.
-    3. Do not invent information.
-    4. Mention the source page numbers.
+Instructions:
+1. Use simple English.
+2. Give a clear answer.
+3. Do not invent information.
+4. Mention the source page numbers.
 
-    Document Context:
-    {context}
+Document Context:
+{context}
 
-    User Question:
-    {state['question']}
-    """
+User Question:
+{state['question']}
+"""
 
-    response = client.models.generate_content(
-        model="gemini-3.5-flash",
-        contents=prompt
-    )
-
+    answer = nl_generate_answer(prompt)
     return {
-        "answer": response.text or "No answer was generated."
+        "answer": answer or "No answer was generated."
     }
-
 
 # Build the Agentic RAG workflow
 def create_rag_graph(index, all_chunks, model):
@@ -392,7 +384,7 @@ if uploaded_files:
 
         if st.button("Summarize Uploaded Documents"):
             try:
-                with st.spinner("Gemini is summarizing..."):
+                with st.spinner("DocuMind AI is summarizing..."):
 
                     document_text = ""
 
@@ -417,22 +409,14 @@ if uploaded_files:
                     Document Content:
                     {document_text}
                     """
-
-                    client = genai.Client(
-                        api_key=st.secrets["GEMINI_API_KEY"]
-                    )
-
-                    response = client.models.generate_content(
-                        model="gemini-3.5-flash",
-                        contents=prompt
-                    )
+                summary = nl_generate_answer(prompt)
 
                 st.subheader("📄 Document Summary")
-                st.write(response.text)
+                st.write(summary)
 
                 st.download_button(
                     label="⬇️ Download Summary",
-                    data=response.text,
+                    data=summary,
                     file_name="document_summary.txt",
                     mime="text/plain"
                 )
